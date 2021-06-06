@@ -21,8 +21,8 @@ const {
 } = require('../helpers/db-validatos');
 
 const {
-    validarCampos
-} = require('../middlewares/validar-campos');
+    validarCampos,validarJWT,tieneRole,esAdminRole
+} = require('../middlewares')
 
 const router = Router();
 
@@ -41,7 +41,7 @@ router.post('/', [
     check('password', 'la password debe tener mas de 6 caracteres').isLength({
         min: 6
     }),
-   // check('email', 'el correo no es un correo valido').isEmail(),
+    check('email', 'el correo no es un correo valido').isEmail(),
     check('email').custom(emailExiste),
     //check('rol', 'No es un rol valido').isIn(['ADMIN_ROLE','USER_ROLE']),
     check('rol').custom(esRolValido),
@@ -49,6 +49,9 @@ router.post('/', [
 ], usuariosPost);
 
 router.delete('/:id',[
+    validarJWT,
+   // esAdminRole,
+   tieneRole('ADMIN_ROLE','VENTA_ROLE'),
     check('id','No es un ID valido').isMongoId(),
     check('id').custom( existeUsuarioPorId),
     validarCampos
