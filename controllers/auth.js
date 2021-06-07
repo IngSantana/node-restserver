@@ -1,49 +1,48 @@
 const { response } = require('express');
-const bcryptjs = require('bcryptjs');
+const bcryptjs = require('bcryptjs')
 
-const Usuario = require("../models/usuario");
-const { generarJWT } = require("../helpers/generar-jwt");
+const Usuario = require('../models/usuario');
 
-const login = async(req, res = response) => {
+const { generarJWT } = require('../helpers/generar-jwt');
+const { googleVerify } = require('../helpers/google-verify');
 
-    const {
-        email,
-        password
-    } = req.body;
+
+const login = async (req, res = response) => {
+
+    const { email, password } = req.body;
 
     try {
 
-        //verificar si el email existe
-        const usuario =  await Usuario.findOne({ email });
-        if(!usuario){
+        // Verificar si el email existe
+        const usuario = await Usuario.findOne({ email });
+        if (!usuario) {
             return res.status(400).json({
-                msg: "Usuario / Password no son correctos - correo"
-            });
-        }
-        //Si el usuario esta activo
-
-        if(!usuario.status){
-            return res.status(400).json({
-                msg: "Usuario / Password no son correctos - estado: false"
+                msg: 'Usuario / Password no son correctos - correo'
             });
         }
 
-        //verificar la password
-
-        const validPassword = bcryptjs.compareSync( password, usuario.password);
-        if (!validPassword ){
+        // SI el usuario está activo
+        if (!usuario.estado) {
             return res.status(400).json({
-                msg: "Usuario / Password no es correcta - password"
+                msg: 'Usuario / Password no son correctos - estado: false'
             });
         }
 
-        //generar el JWT
-        const token = await generarJWT( usuario.id);
+        // Verificar la contraseña
+        const validPassword = bcryptjs.compareSync(password, usuario.password);
+        if (!validPassword) {
+            return res.status(400).json({
+                msg: 'Usuario / Password no son correctos - password'
+            });
+        }
+
+        // Generar el JWT
+        const token = await generarJWT(usuario.id_token);
 
         res.json({
             usuario,
             token
-        });
+        })
 
     } catch (error) {
         console.log(error)
@@ -55,6 +54,60 @@ const login = async(req, res = response) => {
 }
 
 
+const googleSignin = async (req, res = response) => {
+
+    const { id_token } = req.body;
+
+
+
+    try {
+
+        const { email, name, img } = await googleVerify(id_token);
+
+        let usuario = await Usuario.findOne({ email });
+
+
+
+        if (!usuario) {
+            // Tengo que crearlo
+            const data = {
+                name,
+                email,
+                password: ':P',
+                img,
+                google: true
+            };
+
+            usuario = new Usuario(data);
+            await usuario.save();
+        }
+
+    //    Si el usuario en DB
+        if (!usuario.status) {
+            return res.status(401).json({
+                msg: 'Hable con el administrador, usuario bloqueado'
+            });
+        }
+
+ //       Generar el JWT
+        const token = await generarJWT(usuario.id_token);
+
+        res.json({
+            usuario,
+            token
+        });
+
+    } catch (error) {
+
+        res.status(400).json({
+            msg: 'Token de Google no es válido'
+        })
+
+    }
+
+}
+
 module.exports = {
-    login
+    login,
+    googleSignin
 }
