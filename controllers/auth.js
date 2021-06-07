@@ -22,9 +22,11 @@ const login = async (req, res = response) => {
         }
 
         // SI el usuario está activo
-        if (!usuario.estado) {
+        if (!usuario.status) {
             return res.status(400).json({
-                msg: 'Usuario / Password no son correctos - estado: false'
+                msg: 'Usuario / Password no son correctos - estado: false',
+                email,
+                password
             });
         }
 
@@ -37,7 +39,7 @@ const login = async (req, res = response) => {
         }
 
         // Generar el JWT
-        const token = await generarJWT(usuario.id_token);
+        const token = await generarJWT(usuario.id);
 
         res.json({
             usuario,
